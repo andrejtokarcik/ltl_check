@@ -170,18 +170,22 @@ class LTLGraph(object):
             raise ValueError
 
         states = self.nodes | {Init}
-        alphabet = self.formula.atoms | negate(self.formula.atoms) | {True}
-        def trans_function(state, literal):
-            assert state in states and literal in alphabet
+        alphabet = map(set, powerset(self.formula.atoms))
+        def trans_function(state, clause):
+            assert state in states and clause in alphabet
             out = set()
             for n in self.nodes:
                 if state.id_ in n.incoming:
-                    if literal in n.labels['current']:
-                        out.add(n)
-                    elif not n.labels['current'] and literal is True:
+                    current_atoms = n.labels['current'] & \
+                      (self.formula.atoms | negate(self.formula.atoms))
+                    if n.id_ == 21:
+                        print clause, negate(clause)
+                    if clause.issuperset(current_atoms):
                         out.add(n)
             return out
         final_states_system = self._get_final_states_system()
+        if not final_states_system:
+            final_states_system = {states}
 
         return GeneralizedBuchiAutomaton(states=states, alphabet=alphabet,
                                          trans_function=trans_function,
