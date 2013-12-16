@@ -18,19 +18,19 @@ class NondeterministicFiniteStateAutomaton(object):
     def __unicode__(self):
         states_list = list(self.states)
         states_out = map(unicode, states_list)
-        states_out[states_list.index(self.init_state)] += ' (initial)'
+        states_out[states_list.index(self.init_state)] += " (initial)"
         for final_state in self.final_states:
-            states_out[states_list.index(final_state)] += ' (final)'
+            states_out[states_list.index(final_state)] += " (final)"
 
-        desc = 'States: %s\n' % ', '.join(states_out)
-        desc += 'Alphabet: %s\n' % ', '.join(map(unicode, list(self.alphabet)))
-        desc += '\n'
-        desc += 'Transition function:\n'
+        desc = "States: %s\n" % ", ".join(states_out)
+        desc += "Alphabet: %s\n" % ", ".join(map(unicode, list(self.alphabet)))
+        desc += "\n"
+        desc += "Transition function:\n"
         for state in self.states:
             for symbol in self.alphabet:
                 new_state = self.trans_function(state, symbol)
                 if new_state is not None:
-                    desc += '  (%s, %s) -> %s\n' % (state, symbol, new_state)
+                    desc += "  (%s, %s) -> %s\n" % (state, symbol, new_state)
         return desc
 
 class BuchiAutomaton(NondeterministicFiniteStateAutomaton):
