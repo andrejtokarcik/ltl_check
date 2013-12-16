@@ -1,2 +1,0 @@
-class NormalLTLFormula(object):
- 
