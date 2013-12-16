@@ -1,4 +1,5 @@
 from itertools import chain, combinations
+from buchi import BuchiAutomaton
 
 def powerset(iterable):
     s = list(iterable)

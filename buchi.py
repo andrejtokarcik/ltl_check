@@ -1,12 +1,6 @@
 class NondeterministicFiniteStateAutomaton(object):
     def __init__(self, states, alphabet, init_state, trans_function,
                  final_states):
-        assert isinstance(states, set)
-        assert isinstance(alphabet, set)
-        assert init_state in states
-        assert isinstance(final_states, set)
-        assert final_states.issubset(states)
-
         self.states = states
         self.alphabet = alphabet
         self.init_state = init_state
@@ -19,6 +13,7 @@ class NondeterministicFiniteStateAutomaton(object):
         states_list = list(self.states)
         states_out = map(unicode, states_list)
         states_out[states_list.index(self.init_state)] += " (initial)"
+        # FIXME: hidden assumption
         for final_state in self.final_states:
             states_out[states_list.index(final_state)] += " (final)"
 
@@ -36,3 +31,7 @@ class NondeterministicFiniteStateAutomaton(object):
 class BuchiAutomaton(NondeterministicFiniteStateAutomaton):
     def __init__(self, *args, **kwargs):
         super(BuchiAutomaton, self).__init__(*args, **kwargs)
+
+class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
+    def __init__(self, *args, **kwargs):
+        super(GeneralizedBuchiAutomaton, self).__init__(*args, **kwargs)
