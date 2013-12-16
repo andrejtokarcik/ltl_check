@@ -1,18 +1,14 @@
 import time
-from ltl_formulae import *   # :(
+from .buchi import GeneralizedBuchiAutomaton
+from .ltl_formulae import *   # :(
+from .utils import powerset
 
-INIT_EDGE = -1
-
-def negate(formula):
-    if isinstance(formula, Atom):
-        return Not(formula)
-    if isinstance(formula, Not):
-        return formula.atom
-    return not formula       # XXX: Or check for bool explicitly?
-
+# XXX: id_ could be completely got rid of?
+class Init(object):
+    id_ = -1
 
 class LTLGraphNode(object):
-    id_counter = 0
+    _id_counter = 0
 
     def __init__(self, incoming, current=None, in_queue=None, next_=None):
         if current is None:
@@ -22,8 +18,8 @@ class LTLGraphNode(object):
         if next_ is None:
             next_ = set()
 
-        self.__class__.id_counter += 1
-        self.id_ = self.__class__.id_counter
+        self.__class__._id_counter += 1
+        self.id_ = self.__class__._id_counter
         self.incoming = set(incoming)
         self.labels = {
             'current': set(current),
@@ -38,7 +34,8 @@ class LTLGraphNode(object):
 class LTLGraph(object):
     def __init__(self, formula):
         assert isinstance(formula, NormalLTLFormula)
-        self.start_node = LTLGraphNode(incoming=[INIT_EDGE],
+        self.formula = formula
+        self.start_node = LTLGraphNode(incoming=[Init.id_],
                                        in_queue=[formula])
         self.nodes = set()
 
@@ -70,9 +67,9 @@ class LTLGraph(object):
         if negate(formula) not in node.labels['current']:
             new_current = node.labels['current'] | {formula}
             new_node = LTLGraphNode(incoming=node.incoming,
-                                 current=new_current,
-                                 in_queue=node.labels['in_queue'],
-                                 next_=node.labels['next'])
+                                    current=new_current,
+                                    in_queue=node.labels['in_queue'],
+                                    next_=node.labels['next'])
             self.expand(new_node)
 
     def _process_Atom(self, *args, **kwargs):
@@ -112,7 +109,7 @@ class LTLGraph(object):
 
     def _process_X(self, node, formula):
         new_current = node.labels['current'] | {formula}
-        new_next = node.labels['next'] | {formula.subformula}
+        new_next = node.labels['next'] | {formula.subformula1}
         new_node = LTLGraphNode(incoming=node.incoming,
                                 current=new_current,
                                 in_queue=node.labels['in_queue'],
@@ -158,9 +155,42 @@ class LTLGraph(object):
         self.expand(new_node1)
         self.expand(new_node2)
 
+    def _get_final_states_system(self):
+        system = set()
+        for subformula in self.formula.subformulae:
+            if isinstance(subformula, U):
+                state_set = frozenset([n for n in self.nodes
+                             if subformula.subformula2 in n.labels['current']
+                             or subformula not in n.labels['current']])
+                system.add(state_set)
+        return system
+
+    def to_generalized_buchi(self):
+        if not self.nodes:
+            raise ValueError
+
+        states = self.nodes | {Init}
+        alphabet = self.formula.atoms | negate(self.formula.atoms) | {True}
+        def trans_function(state, literal):
+            assert state in states and literal in alphabet
+            out = set()
+            for n in self.nodes:
+                if state.id_ in n.incoming:
+                    if literal in n.labels['current']:
+                        out.add(n)
+                    elif not n.labels['current'] and literal is True:
+                        out.add(n)
+            return out
+        final_states_system = self._get_final_states_system()
+
+        return GeneralizedBuchiAutomaton(states=states, alphabet=alphabet,
+                                         trans_function=trans_function,
+                                         init_state=Init,
+                                         final_states=final_states_system)
+
     def __unicode__(self):
         desc = "Nodes:\n"
-        for node in sorted(self.nodes, key=lambda x: x.id_):
+        for node in self.nodes:
             desc += "`-- %s\n" % node
         return desc
 

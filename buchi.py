@@ -14,8 +14,8 @@ class NondeterministicFiniteStateAutomaton(object):
         states_out = map(unicode, states_list)
         states_out[states_list.index(self.init_state)] += " (initial)"
         # FIXME: hidden assumption
-        for final_state in self.final_states:
-            states_out[states_list.index(final_state)] += " (final)"
+        #for final_state in self.final_states:
+        #    states_out[states_list.index(final_state)] += " (final)"
 
         desc = "States: %s\n" % ", ".join(states_out)
         desc += "Alphabet: %s\n" % ", ".join(map(unicode, list(self.alphabet)))
@@ -24,7 +24,7 @@ class NondeterministicFiniteStateAutomaton(object):
         for state in self.states:
             for symbol in self.alphabet:
                 new_state = self.trans_function(state, symbol)
-                if new_state is not None:
+                if new_state:
                     desc += "  (%s, %s) -> %s\n" % (state, symbol, new_state)
         return desc
 
