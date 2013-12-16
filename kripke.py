@@ -1,10 +1,5 @@
-from itertools import chain, combinations
-from buchi import BuchiAutomaton
-
-def powerset(iterable):
-    s = list(iterable)
-    return set(chain.from_iterable(combinations(s, r)
-                                   for r in range(len(s)+1)))
+from .buchi import BuchiAutomaton
+from .utils import powerset
 
 class KripkeStructure(object):
     def __init__(self, init_state, succs_function, label_function):
@@ -26,7 +21,7 @@ class KripkeStructure(object):
         for state in self.states:
             self.atoms.update(label_function(state))
 
-    def as_buchi(self):
+    def to_buchi(self):
         alphabet = powerset(self.atoms)
         def trans_function(state, symbol):
             assert state in self.states
