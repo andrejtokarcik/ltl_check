@@ -97,15 +97,15 @@ class R(NormalLTLFormula):
     def __repr__(self):
         return "R(%r, %r)" % (self.subformula1, self.subformula2)
 
-def negate(iter_or_formula):
-    try:
-        result = set()
-        for i in iter_or_formula:
-            result.add(negate(i))
-        return result
-    except TypeError:
-        if isinstance(iter_or_formula, Atom):
-            return Not(iter_or_formula)
-        if isinstance(iter_or_formula, Not):
-            return iter_or_formula.atom
-        return not iter_or_formula       # XXX: Or check for bool explicitly?
+def negate(formula):
+    if isinstance(formula, Atom):
+        return Not(formula)
+    if isinstance(formula, Not):
+        return formula.atom
+    if isinstance(formula, X):
+        return X(negate(formula.subformula1))
+    if isinstance(formula, U):
+        return R(negate(formula.subformula1), negate(formula.subformula2))
+    if isinstance(formula, R):
+        return U(negate(formula.subformula1), negate(formula.subformula2))
+    raise TypeError

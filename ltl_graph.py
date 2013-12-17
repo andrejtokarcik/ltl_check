@@ -177,7 +177,7 @@ class LTLGraph(object):
             for n in self.nodes:
                 if state.id_ in n.incoming:
                     current_atoms = n.labels['current'] & \
-                      (self.formula.atoms | negate(self.formula.atoms))
+                      (self.formula.atoms | map(negate, self.formula.atoms)))
                     if clause.issuperset(current_atoms):
                         out.add(n)
             return out
