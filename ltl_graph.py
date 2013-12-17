@@ -178,8 +178,6 @@ class LTLGraph(object):
                 if state.id_ in n.incoming:
                     current_atoms = n.labels['current'] & \
                       (self.formula.atoms | negate(self.formula.atoms))
-                    if n.id_ == 21:
-                        print clause, negate(clause)
                     if clause.issuperset(current_atoms):
                         out.add(n)
             return out

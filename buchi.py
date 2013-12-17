@@ -1,6 +1,8 @@
 class NondeterministicFiniteStateAutomaton(object):
     def __init__(self, states, alphabet, init_state, trans_function,
                  final_states):
+        assert init_state in states
+
         self.states = states
         self.alphabet = alphabet
         self.init_state = init_state
@@ -18,6 +20,7 @@ class NondeterministicFiniteStateAutomaton(object):
         #    states_out[states_list.index(final_state)] += " (final)"
 
         desc = "States: %s\n" % ", ".join(states_out)
+        desc += "Final states: %s\n" % self.final_states
         desc += "Alphabet: %s\n" % ", ".join(map(unicode, list(self.alphabet)))
         desc += "\n"
         desc += "Transition function:\n"
@@ -35,3 +38,29 @@ class BuchiAutomaton(NondeterministicFiniteStateAutomaton):
 class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
     def __init__(self, *args, **kwargs):
         super(GeneralizedBuchiAutomaton, self).__init__(*args, **kwargs)
+
+    def ungeneralize(self):
+        from itertools import product
+
+        new_states = set(product(self.states, range(len(self.final_states) + 1)))
+        def new_trans_function(new_state, symbol):
+            out = self.trans_function(new_state[0], symbol)
+            new_out = set()
+            for q in out:
+                print len(self.final_states), new_state[1]
+                if new_state[1] == len(self.final_states):
+                    j = 0
+                elif out in self.final_states[new_state[1]]:
+                    print new_state == ('p', 0)
+                    j = new_state[1] + 1
+                else:
+                    j = new_state[1]
+                new_out.add((q, j))
+            return new_out
+        new_final_states = set(product(self.states, [len(self.final_states)]))
+
+        return BuchiAutomaton(alphabet=self.alphabet,
+                              states=new_states,
+                              init_state=(self.init_state, 0),
+                              trans_function=new_trans_function,
+                              final_states=new_final_states)
