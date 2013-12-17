@@ -1,3 +1,5 @@
+from itertools import product
+
 class NondeterministicFiniteStateAutomaton(object):
     def __init__(self, states, alphabet, init_state, trans_function,
                  final_states):
@@ -10,6 +12,48 @@ class NondeterministicFiniteStateAutomaton(object):
         # (i.e., a member of the states set).
         self.trans_function = trans_function
         self.final_states = final_states
+
+    def to_graph(self):
+        edges = set()
+        for state in self.states:
+            for symbol in self.alphabet:
+                for succ in self.trans_function(state, symbol):
+                    edges.add((state, succ))
+        return edges
+
+    def nested_dfs(self):
+        visited = set()
+        nested = set()
+        stack = set()
+
+        def dfs(vertex):
+            if vertex not in visited:
+                visited.add(vertex)
+                stack.add(vertex)
+                for (v, s) in self.to_graph():
+                    if v == vertex:
+                        result = dfs(s)
+                        if result:
+                            return result
+                if self.is_accepting(vertex):
+                    result = detect_cycle(vertex)
+                    if result:
+                        return result
+                stack.remove(vertex)
+
+        def detect_cycle(vertex):
+            if vertex not in nested:
+                nested.add(vertex)
+                for (v, s) in self.to_graph():
+                    if v == vertex:
+                        if s in stack:
+                            return stack
+                        else:
+                            result = detect_cycle(s)
+                            if result:
+                                return result
+
+        return dfs(self.init_state)
 
     def __unicode__(self):
         states_list = list(self.states)
@@ -35,26 +79,25 @@ class BuchiAutomaton(NondeterministicFiniteStateAutomaton):
     def __init__(self, *args, **kwargs):
         super(BuchiAutomaton, self).__init__(*args, **kwargs)
 
+    def is_accepting(self, state):
+        return state in self.final_states
+
 class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
     def __init__(self, *args, **kwargs):
         super(GeneralizedBuchiAutomaton, self).__init__(*args, **kwargs)
 
     def ungeneralize(self):
-        from itertools import product
-
         new_states = set(product(self.states, range(len(self.final_states) + 1)))
-        def new_trans_function(new_state, symbol):
-            out = self.trans_function(new_state[0], symbol)
+        def new_trans_function((p, i), symbol):
+            out = self.trans_function(p, symbol)
             new_out = set()
             for q in out:
-                print len(self.final_states), new_state[1]
-                if new_state[1] == len(self.final_states):
+                if i == len(self.final_states):
                     j = 0
                 elif out in self.final_states[new_state[1]]:
-                    print new_state == ('p', 0)
-                    j = new_state[1] + 1
+                    j = i + 1
                 else:
-                    j = new_state[1]
+                    j = i
                 new_out.add((q, j))
             return new_out
         new_final_states = set(product(self.states, [len(self.final_states)]))
@@ -64,3 +107,20 @@ class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
                               init_state=(self.init_state, 0),
                               trans_function=new_trans_function,
                               final_states=new_final_states)
+
+def buchi_composition(ba1, ba2):
+    assert ba1.alphabet == ba2.alphabet
+    assert ba1.final_states == ba1.states
+
+    new_states = set(product(ba1.states, ba2.states))
+    def new_trans_function((ba1_state, ba2_state), symbol):
+        ba1_out = ba1.trans_function(ba1_state, symbol)
+        ba2_out = ba2.trans_function(ba2_state, symbol)
+        return set(product(ba1_out, ba2_out))
+    new_final_states = product(ba1.states, ba2.final_states)
+
+    return BuchiAutomaton(state=new_states,
+                          alphabet=ba1.alphabet,
+                          init_state=(ba1.init_state, ba2.init_state),
+                          trans_function=new_trans_function,
+                          final_states=new_final_states)
