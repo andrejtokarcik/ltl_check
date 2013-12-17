@@ -13,8 +13,8 @@ class KripkeStructure(object):
         while succs_stack:
             state = succs_stack.pop()
             if state not in self.states:
-                succs_stack += succs_function(state)
                 self.states.add(state)
+                succs_stack += succs_function(state)
 
         # Obtain the set of atomic propositions.
         self.atoms = set()
@@ -24,8 +24,6 @@ class KripkeStructure(object):
     def to_buchi(self):
         alphabet = powerset(self.atoms)
         def trans_function(state, symbol):
-            assert state in self.states
-            assert symbol in alphabet
             if set(self.label_function(state)) == set(symbol):
                 return self.succs_function(state)
 

@@ -1,4 +1,4 @@
-class NormalLTLFormula(object):
+class LTLFormula(object):
     @property
     def subformulae(self):
         subs = {self}
@@ -25,14 +25,23 @@ class NormalLTLFormula(object):
             res.update(subformula.atoms)
         return res
 
-class Atom(NormalLTLFormula):
+class Atom(LTLFormula):
     def __init__(self, id_):
         self.id_ = id_
+
+    def __hash__(self):
+        return hash(self.id_)
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
+
+    def __ne__(self, other):
+        return not (self == other)
 
     def __repr__(self):
         return "Atom(%r)" % self.id_
 
-class Not(NormalLTLFormula):
+class Not(LTLFormula):
     def __init__(self, atom):
         assert isinstance(atom, Atom)
         self.atom = atom
@@ -40,57 +49,57 @@ class Not(NormalLTLFormula):
     def __repr__(self):
         return "Not(%r)" % self.atom
 
-class Or(NormalLTLFormula):
+class Or(LTLFormula):
     operands_num = 2
 
     def __init__(self, subformula1, subformula2):
-        assert isinstance(subformula1, NormalLTLFormula)
-        assert isinstance(subformula2, NormalLTLFormula)
+        assert isinstance(subformula1, LTLFormula)
+        assert isinstance(subformula2, LTLFormula)
         self.subformula1 = subformula1
         self.subformula2 = subformula2
 
     def __repr__(self):
         return "Or(%r, %r)" % (self.subformula1, self.subformula2)
 
-class And(NormalLTLFormula):
+class And(LTLFormula):
     operands_num = 2
 
     def __init__(self, subformula1, subformula2):
-        assert isinstance(subformula1, NormalLTLFormula)
-        assert isinstance(subformula2, NormalLTLFormula)
+        assert isinstance(subformula1, LTLFormula)
+        assert isinstance(subformula2, LTLFormula)
         self.subformula1 = subformula1
         self.subformula2 = subformula2
 
     def __repr__(self):
         return "And(%r, %r)" % (self.subformula1, self.subformula2)
 
-class X(NormalLTLFormula):
+class X(LTLFormula):
     operands_num = 1
 
     def __init__(self, subformula1):
-        assert isinstance(subformula1, NormalLTLFormula)
+        assert isinstance(subformula1, LTLFormula)
         self.subformula1 = subformula1
 
     def __repr__(self):
         return "X(%r)" % self.subformula1
 
-class U(NormalLTLFormula):
+class U(LTLFormula):
     operands_num = 2
 
     def __init__(self, subformula1, subformula2):
-        assert isinstance(subformula1, NormalLTLFormula)
-        assert isinstance(subformula2, NormalLTLFormula)
+        assert isinstance(subformula1, LTLFormula)
+        assert isinstance(subformula2, LTLFormula)
         self.subformula1 = subformula1
         self.subformula2 = subformula2
 
     def __repr__(self):
         return "U(%r, %r)" % (self.subformula1, self.subformula2)
 
-class R(NormalLTLFormula):
+class R(LTLFormula):
     operands_num = 2
     def __init__(self, subformula1, subformula2):
-        assert isinstance(subformula1, NormalLTLFormula)
-        assert isinstance(subformula2, NormalLTLFormula)
+        assert isinstance(subformula1, LTLFormula)
+        assert isinstance(subformula2, LTLFormula)
         self.subformula1 = subformula1
         self.subformula2 = subformula2
 
@@ -102,6 +111,10 @@ def negate(formula):
         return Not(formula)
     if isinstance(formula, Not):
         return formula.atom
+    if isinstance(formula, And):
+        return Or(negate(formula.subformula1), negate(formula.subformula2))
+    if isinstance(formula, Or):
+        return And(negate(formula.subformula1), negate(formula.subformula2))
     if isinstance(formula, X):
         return X(negate(formula.subformula1))
     if isinstance(formula, U):

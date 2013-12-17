@@ -6,12 +6,20 @@ class NondeterministicFiniteStateAutomaton(object):
         assert init_state in states
 
         self.states = states
-        self.alphabet = alphabet
+        self.alphabet = set(alphabet) #frozenset(map(frozenset, alphabet))
         self.init_state = init_state
-        # TODO: Ensure that the transition function always returns a state
-        # (i.e., a member of the states set).
-        self.trans_function = trans_function
+        self.trans_function = self._wrapper(trans_function)
         self.final_states = final_states
+
+    def _wrapper(self, tf):
+        def trans_function(state, symbol):
+            assert state in self.states
+            #assert symbol in self.alphabet
+            res = set(tf(state, symbol) or [])
+            if res:
+                assert res.issubset(self.states)
+            return res
+        return trans_function
 
     def to_graph(self):
         edges = set()
@@ -88,19 +96,21 @@ class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
 
     def ungeneralize(self):
         new_states = set(product(self.states, range(len(self.final_states) + 1)))
+        final_states = list(self.final_states)
+
         def new_trans_function((p, i), symbol):
             out = self.trans_function(p, symbol)
             new_out = set()
             for q in out:
-                if i == len(self.final_states):
+                if i == len(final_states):
                     j = 0
-                elif out in self.final_states[new_state[1]]:
+                elif q in final_states[i]:
                     j = i + 1
                 else:
                     j = i
                 new_out.add((q, j))
             return new_out
-        new_final_states = set(product(self.states, [len(self.final_states)]))
+        new_final_states = set(product(self.states, [len(final_states)]))
 
         return BuchiAutomaton(alphabet=self.alphabet,
                               states=new_states,
@@ -108,19 +118,19 @@ class GeneralizedBuchiAutomaton(NondeterministicFiniteStateAutomaton):
                               trans_function=new_trans_function,
                               final_states=new_final_states)
 
-def buchi_composition(ba1, ba2):
-    assert ba1.alphabet == ba2.alphabet
-    assert ba1.final_states == ba1.states
+def buchi_composition(ba_sys, ba_ltl):
+    assert ba_sys.alphabet.issuperset(ba_ltl.alphabet)
+    assert ba_sys.final_states == ba_sys.states
 
-    new_states = set(product(ba1.states, ba2.states))
-    def new_trans_function((ba1_state, ba2_state), symbol):
-        ba1_out = ba1.trans_function(ba1_state, symbol)
-        ba2_out = ba2.trans_function(ba2_state, symbol)
-        return set(product(ba1_out, ba2_out))
-    new_final_states = product(ba1.states, ba2.final_states)
+    new_states = set(product(ba_sys.states, ba_ltl.states))
+    def new_trans_function((ba_sys_state, ba_ltl_state), symbol):
+        ba_sys_out = ba_sys.trans_function(ba_sys_state, symbol)
+        ba_ltl_out = ba_ltl.trans_function(ba_ltl_state, symbol)
+        return set(product(ba_sys_out or [], ba_ltl_out or []))
+    new_final_states = set(product(ba_sys.states, ba_ltl.final_states))
 
-    return BuchiAutomaton(state=new_states,
-                          alphabet=ba1.alphabet,
-                          init_state=(ba1.init_state, ba2.init_state),
+    return BuchiAutomaton(states=new_states,
+                          alphabet=ba_sys.alphabet,
+                          init_state=(ba_sys.init_state, ba_ltl.init_state),
                           trans_function=new_trans_function,
                           final_states=new_final_states)

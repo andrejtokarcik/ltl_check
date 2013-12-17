@@ -33,7 +33,7 @@ class LTLGraphNode(object):
 
 class LTLGraph(object):
     def __init__(self, formula):
-        assert isinstance(formula, NormalLTLFormula)
+        assert isinstance(formula, LTLFormula)
         self.formula = formula
         self.start_node = LTLGraphNode(incoming=[Init.id_],
                                        queue=[formula])
@@ -99,7 +99,7 @@ class LTLGraph(object):
     def _process_And(self, node, formula):
         new_current = node.labels['current'] | {formula}
         new_queue = node.labels['queue'] | {formula.subformula1,
-                                               formula.subformula2}
+                                            formula.subformula2}
         new_node = LTLGraphNode(incoming=node.incoming,
                                  current=new_current,
                                  queue=new_queue,
@@ -139,7 +139,7 @@ class LTLGraph(object):
         new_current = node.labels['current'] | {formula}
 
         new_queue1 = node.labels['queue'] | {formula.subformula1,
-                                                formula.subformula2}
+                                             formula.subformula2}
         new_node1 = LTLGraphNode(incoming=node.incoming,
                                  current=new_current,
                                  queue=new_queue1,
@@ -170,20 +170,19 @@ class LTLGraph(object):
             raise ValueError
 
         states = self.nodes | {Init}
-        alphabet = map(set, powerset(self.formula.atoms))
+        alphabet = powerset(self.formula.atoms)
         def trans_function(state, clause):
-            assert state in states and clause in alphabet
             out = set()
             for n in self.nodes:
                 if state.id_ in n.incoming:
                     current_atoms = n.labels['current'] & \
-                      (self.formula.atoms | map(negate, self.formula.atoms)))
-                    if clause.issuperset(current_atoms):
+                      (self.formula.atoms | set(map(negate, self.formula.atoms)))
+                    if current_atoms.issubset(clause):
                         out.add(n)
             return out
         final_states_system = self._get_final_states_system()
         if not final_states_system:
-            final_states_system = {states}
+            final_states_system = {frozenset(states)}
 
         return GeneralizedBuchiAutomaton(states=states, alphabet=alphabet,
                                          trans_function=trans_function,
